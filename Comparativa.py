@@ -50,7 +50,7 @@ class Aplicacion:
         self.cofar_df = None
         
         self.root = root
-        self.root.geometry("750x450")  # Anchura x Altura
+        self.root.geometry("650x400")  # Anchura x Altura
         self.root.title("COMPARADOR")
         self.root.config(bg="black")
 
@@ -102,7 +102,7 @@ class Aplicacion:
 
 
         # Botón para cargar Cofarsur
-        self.btn_cargar_cofarsur = tk.Button(frame_carga2, text="Cofarsur", command=self.cargar_cofar, bg="grey", fg="white", font=("Arial", 10, "bold"))
+        self.btn_cargar_cofarsur = tk.Button(frame_carga2, text="Cargar Cofarsur", command=self.cargar_cofar, bg="grey", fg="white", font=("Arial", 10, "bold"))
         self.btn_cargar_cofarsur.pack(side="left", padx=10, pady=5)
         self.btn_cargar_cofarsur.bind("<Leave>", lambda event: self.ocultar_descripcion())
         self.btn_cargar_cofarsur.bind("<Enter>", lambda event: self.mostrar_descripcion("Ingresar Archivo Cofarsur en formato .CSV\n Opcional si no lo cargamos desde el cloud"))
