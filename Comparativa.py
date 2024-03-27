@@ -1,9 +1,11 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+from tkinter.ttk import Combobox
 import pandas as pd
 import numpy as np
 
 def encontrar_mejor_precio_y_origen(fila):
+
     precios = fila[['PreciosProveedor', 'DDS', 'MASA', 'SUIZO', 'COFARSUR']]
     # Convertir todas las entradas a valores numéricos
     precios_numericos = pd.to_numeric(precios, errors='coerce')
@@ -20,61 +22,25 @@ def encontrar_mejor_precio_y_origen(fila):
     return pd.Series({'Mejor_Precio': mejor_precio, 'Mejor_Origen': mejor_origen})
 
 
+def encontrar_mejor_precio_y_origen_sinProveedor(fila):
 
+    precios = fila[['DDS', 'MASA', 'SUIZO', 'COFARSUR']]
+    # Convertir todas las entradas a valores numéricos
+    precios_numericos = pd.to_numeric(precios, errors='coerce')
+    # Filtrar los valores que son 0 o NaN
+    precios_filtrados = precios_numericos.replace({0: np.nan})
+    # Encontrar el mínimo precio
+    mejor_precio = precios_filtrados.min()
+    # Encontrar el nombre de la columna con el mínimo precio
+    origen_mejor_precio = precios_filtrados.idxmin()
+    if pd.isna(origen_mejor_precio):  # Manejar el caso donde no se encuentra ningún precio válido
+        mejor_origen = 'Ninguno'
+    else:
+        mejor_origen = origen_mejor_precio.split('_')[0]
+    return pd.Series({'Mejor_Precio': mejor_precio, 'Mejor_Origen': mejor_origen})
 
 class Aplicacion:
     def __init__(self, root):
-        self.root = root
-        self.root.geometry("600x400")  # Anchura x Altura
-        self.root.title("Cargar y Manipular CSV")
-        
-        # Frame para los botones de carga de archivos
-        frame_carga = tk.Frame(root)
-        frame_carga.pack(pady=10)
-        
-        self.btn_accion_total = tk.Button(frame_carga, text="Cargar base datos CSV", command=self.realizar_todas_acciones)
-        self.btn_accion_total.pack(side="left", padx=5)
-        
-        self.btn_accion2 = tk.Button(frame_carga, text="Cargar Proveedor", command=self.cargar_proveedor)
-        self.btn_accion2.pack(side="left", padx=5)
-        
-        self.btn_accion3 = tk.Button(frame_carga, text="Cargar Quantio Cloud", command=self.cargar_comparativa)
-        self.btn_accion3.pack(side="left", padx=5)
-        
-       
-        
-        # Frame para el Combobox de descuento
-        frame_descuento = tk.Frame(root)
-        frame_descuento.pack(pady=10)
-        
-        frame_descuento_carga = tk.Frame(root)
-        frame_descuento_carga.pack(pady=10)
-
-        # Label para el Combobox de descuento
-        self.lbl_descuento = tk.Label(frame_descuento_carga, text="Descuento:")
-        self.lbl_descuento.pack(side="left", padx=5)
-
-        # Combobox de descuento
-        self.combo_descuento = ttk.Combobox(frame_descuento_carga, values=["0%", "5%", "10%", "15%", "20%"])
-        self.combo_descuento.pack(side="left", padx=5)
-        self.combo_descuento.set("0%")  # Valor por defecto
-
-        # Botón para cargar Cofarsur
-        self.btn_accion4 = tk.Button(frame_descuento_carga, text="Cargar Cofarsur", command=self.cargar_cofar)
-        self.btn_accion4.pack(side="left", padx=5)
-
-        # Botón para exportar a TXT
-        self.btn_exportar_xlsx = tk.Button(root, text="Exportar a TXT", command=self.exportar_a_txt)
-        self.btn_exportar_xlsx.pack(pady=5)
-
-        # Botón para exportar el pedido
-        self.btn_exportar_txt = tk.Button(root, text="Exportar Pedido", command=self.exportar_a_xlsx)
-        self.btn_exportar_txt.pack(pady=5)
-
-        # Etiqueta para mostrar el muestreo
-        self.lbl_muestreo = tk.Label(root, text="")
-        self.lbl_muestreo.pack(pady=10)
-        
         # Variables para almacenar los DataFrames
         self.base_de_datos_df = None
         self.base_de_datos_TXT = None
@@ -83,6 +49,94 @@ class Aplicacion:
         self.exportacion_df = None
         self.cofar_df = None
         
+        self.root = root
+        self.root.geometry("750x450")  # Anchura x Altura
+        self.root.title("COMPARADOR")
+        self.root.config(bg="black")
+
+        # Título
+        self.titulo_label = tk.Label(root, text="COMPARADOR", bg="black", fg="white", font=("Arial", 20, "bold"))
+        self.titulo_label.pack(pady=10)
+
+        # Frame para los botones de carga de archivos
+        frame_carga = tk.Frame(root, bg="black")
+        frame_carga.pack(pady=10)
+
+        # Botón para cargar CSV
+        self.btn_cargar_csv = tk.Button(frame_carga, text="Simulador De Compras", command=self.realizar_todas_acciones, bg="grey", fg="white", font=("Arial", 10, "bold"))
+        self.btn_cargar_csv.pack(side="left", padx=10, pady=5)
+        self.btn_cargar_csv.bind("<Enter>", lambda event: self.mostrar_descripcion("Cargar Simulador de Integra en formato .CSV\nObligatorio"))
+        self.btn_cargar_csv.bind("<Leave>", lambda event: self.ocultar_descripcion())
+
+        # Botón para exportar a TXT
+        self.btn_exportar_txt = tk.Button(frame_carga, text="Exportar TXT", command=self.exportar_a_txt, bg="grey", fg="white", font=("Arial", 10, "bold"))
+        self.btn_exportar_txt.pack(side="left", padx=10, pady=5)
+        self.btn_exportar_txt.bind("<Enter>", lambda event: self.mostrar_descripcion("archivo para cargar en Quantio Cloud formato .Txt"))
+        self.btn_exportar_txt.bind("<Leave>", lambda event: self.ocultar_descripcion())
+
+        # Separador
+        separator = ttk.Separator(root, orient='horizontal')
+        separator.pack(fill='x', padx=10, pady=5)
+
+        # Frame para los botones de carga de proveedor y Quantio Cloud
+        frame_carga2 = tk.Frame(root, bg="black")
+        frame_carga2.pack(pady=10)
+
+        # Botón para cargar proveedor
+        self.btn_cargar_proveedor = tk.Button(frame_carga2, text="Cargar Proveedor", command=self.cargar_proveedor, bg="grey", fg="white", font=("Arial", 10, "bold"))
+        self.btn_cargar_proveedor.pack(side="left", padx=10, pady=5)
+        self.btn_cargar_proveedor.bind("<Leave>", lambda event: self.ocultar_descripcion())
+
+        self.btn_cargar_proveedor.bind("<Enter>", lambda event: self.mostrar_descripcion("Ingresar Archivo de proveedor sin titulos solo Codebar en las columnas 1 y Precio en la 2 formato .Txt\n Opcional"))
+        # Botón para cargar Quantio Cloud
+        self.btn_cargar_quantio = tk.Button(frame_carga2, text="Cargar Quantio Cloud", command=self.cargar_comparativa, bg="grey", fg="white", font=("Arial", 10, "bold"))
+        self.btn_cargar_quantio.pack(side="left", padx=10, pady=5)
+        self.btn_cargar_quantio.bind("<Leave>", lambda event: self.ocultar_descripcion())
+        self.btn_cargar_quantio.bind("<Enter>", lambda event: self.mostrar_descripcion("Cargar Quantio Cloud en formato .Xlsx\n Obligatorio"))
+
+        # Entrada para el descuento
+        self.combo_descuento = Combobox(frame_carga2, values=["10%", "20%", "30%"])  # Puedes ajustar los valores según tus necesidades
+        self.combo_descuento.pack(side="left", padx=5, pady=5)
+        self.combo_descuento.current(0)  # Selecciona el primer valor por defecto
+
+
+
+        # Botón para cargar Cofarsur
+        self.btn_cargar_cofarsur = tk.Button(frame_carga2, text="Cofarsur", command=self.cargar_cofar, bg="grey", fg="white", font=("Arial", 10, "bold"))
+        self.btn_cargar_cofarsur.pack(side="left", padx=10, pady=5)
+        self.btn_cargar_cofarsur.bind("<Leave>", lambda event: self.ocultar_descripcion())
+        self.btn_cargar_cofarsur.bind("<Enter>", lambda event: self.mostrar_descripcion("Ingresar Archivo Cofarsur en formato .CSV\n Opcional si no lo cargamos desde el cloud"))
+
+        # Separador
+        separator2 = ttk.Separator(root, orient='horizontal')
+        separator2.pack(fill='x', padx=10, pady=5)
+
+        # Frame para el botón de carga de Cofarsur
+        frame_exportar_pedido = tk.Frame(root, bg="black")
+        frame_exportar_pedido.pack(pady=10)
+
+        # Botón para exportar el pedido
+        self.btn_exportar_pedido = tk.Button(frame_exportar_pedido, text="Exportar Pedido", command=self.exportar_a_xlsx, bg="grey", fg="white", font=("Arial", 10, "bold"))
+        self.btn_exportar_pedido.pack(pady=5)
+        self.btn_exportar_pedido.bind("<Enter>", lambda event: self.mostrar_descripcion("Exportar Pedido"))
+        self.btn_exportar_pedido.bind("<Leave>", lambda event: self.ocultar_descripcion())
+
+        # Etiqueta para mostrar el muestreo
+        self.lbl_muestreo = tk.Label(root, text="", bg="black", fg="white", font=("Arial", 10))
+        self.lbl_muestreo.pack(pady=10)
+
+        # Etiqueta para mostrar la descripción del botón al hacer hover
+        self.lbl_descripcion = tk.Label(root, text="", bg="black", fg="white", font=("Arial", 10, "italic"))
+        self.lbl_descripcion.pack(pady=5)
+
+
+
+    def mostrar_descripcion(self, texto):
+        self.lbl_descripcion.config(text=texto)
+
+    def ocultar_descripcion(self):
+        self.lbl_descripcion.config(text="")
+
     
     def cargar_archivo(self):
         # Abrir el diálogo para seleccionar el archivo CSV
@@ -97,6 +151,8 @@ class Aplicacion:
             
 
     def reordenar_y_renombrar(self):
+        if self.masivas_df is not None:
+            print("Cargado el df")
         if self.base_de_datos_df is not None:
             # Reordenar y renombrar las columnas del DataFrame
             self.base_de_datos_df = self.base_de_datos_df[['Codigo', 'C.Barra', 'Descripcion', 'Comprar', 'Máximo 3 meses', 
@@ -109,7 +165,8 @@ class Aplicacion:
             for idx, valor in enumerate(self.base_de_datos_df['C.Barra']):
                 try:
                     # Intentamos convertir el valor a tipo float
-                    valor_convertido = float(valor.replace(',', ''))
+                    valor_convertido = float(str(valor).replace(',', ''))
+
                     # Si la conversión es exitosa, actualizamos el valor en el DataFrame
                     self.base_de_datos_df.at[idx, 'C.Barra'] = valor_convertido
                 except ValueError:
@@ -235,7 +292,29 @@ class Aplicacion:
                 messagebox.showinfo("Guardado Exitoso", "DataFrame guardado como archivo XLSX correctamente.")
                 
             else:
-                tk.messagebox.showerror("Error", "Primero carga ambos DataFrames.")
+                if self.base_de_datos_df is not None and self.proveedor_df is None:
+                # Fusionar los DataFrames en base a la columna "C.Barra"
+
+                    self.exportacion_df = pd.merge(self.base_de_datos_df, self.masivas_df,left_on="C.Barra", right_on=self.masivas_df.columns[1], how="left")
+                    self.exportacion_df = pd.merge(self.exportacion_df, self.cofar_df,left_on="C.Barra", right_on=self.cofar_df.columns[0], how="left")
+                    self.exportacion_df.rename(columns={self.exportacion_df.columns[-1]: 'COFARSUR'}, inplace=True)  # La última columna es la de precios
+
+                    # Renombrar columnas
+                    self.exportacion_df = self.exportacion_df.reindex(columns=['IDQuantio', 'C.Barra', 'Descripcion', 'ComprarQ', 'Máximo 3 meses', 
+                                            'Vtas 01mes Atras Cerrado', 'Vtas 02mes Atras Cerrado', 
+                                            'Vtas 03mes Atras Cerrado', 'Stock Actual C.D.', 'Stock Sucursales', 
+                                            'Surtido Total',"DDS","MASA","SUIZO",'COFARSUR', 'PVP'])
+                    
+                    
+                    mejor_precio_origen = self.exportacion_df.apply(encontrar_mejor_precio_y_origen_sinProveedor, axis=1)
+                    self.exportacion_df = pd.concat([self.exportacion_df, mejor_precio_origen], axis=1)
+
+                
+                    ruta_archivo = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Archivo de Excel", "*.xlsx")])
+                    self.exportacion_df.to_excel(ruta_archivo,index=False)
+                    messagebox.showinfo("Guardado Exitoso", "DataFrame guardado como archivo XLSX correctamente.")
+                else:    
+                    tk.messagebox.showerror("Error", "Primero carga ambos DataFrames.")
         else:
             if self.base_de_datos_df is not None and self.proveedor_df is not None:
                 # Fusionar los DataFrames en base a la columna "C.Barra"
@@ -259,7 +338,28 @@ class Aplicacion:
                 self.exportacion_df.to_excel(ruta_archivo,index=False)
                 messagebox.showinfo("Guardado Exitoso", "DataFrame guardado como archivo XLSX correctamente.")    
             else:
-                tk.messagebox.showerror("Error", "Primero carga ambos DataFrames.")
+                if self.base_de_datos_df is not None:
+                # Fusionar los DataFrames en base a la columna "C.Barra"
+
+                    self.exportacion_df = pd.merge(self.base_de_datos_df, self.masivas_df,left_on="C.Barra", right_on=self.masivas_df.columns[1], how="left")
+                
+
+                    # Renombrar columnas
+                    self.exportacion_df = self.exportacion_df.reindex(columns=['IDQuantio', 'C.Barra', 'Descripcion', 'ComprarQ', 'Máximo 3 meses', 
+                                            'Vtas 01mes Atras Cerrado', 'Vtas 02mes Atras Cerrado', 
+                                            'Vtas 03mes Atras Cerrado', 'Stock Actual C.D.', 'Stock Sucursales', 
+                                            'Surtido Total',"DDS","MASA","SUIZO",'COFARSUR', 'PVP'])
+                    
+                    
+                    mejor_precio_origen = self.exportacion_df.apply(encontrar_mejor_precio_y_origen_sinProveedor, axis=1)
+                    self.exportacion_df = pd.concat([self.exportacion_df, mejor_precio_origen], axis=1)
+
+                
+                    ruta_archivo = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Archivo de Excel", "*.xlsx")])
+                    self.exportacion_df.to_excel(ruta_archivo,index=False)
+                    messagebox.showinfo("Guardado Exitoso", "DataFrame guardado como archivo XLSX correctamente.")
+                else:    
+                    tk.messagebox.showerror("Error", "Primero carga ambos DataFrames.")
                 
             
                 
